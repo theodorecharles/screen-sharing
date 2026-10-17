@@ -1,0 +1,8 @@
+Screen Sharing
+
+Derived from the Apple Screen Sharing client by renegadelink and contributors.
+Upstream: https://github.com/renegadelink/iShareScreen
+Original source is available in the Git history and through the upstream remote.
+Distributed under AGPL-3.0-or-later; see LICENSE.
+
+Native Linux session UI, CLI, and desktop integration by Theodore Charles.

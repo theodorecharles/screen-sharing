@@ -5,8 +5,8 @@ import threading
 import time
 import types
 
-from isharescreen.proxy.media.quality_gate import FrameQualityGate
-from isharescreen.proxy.session import Session
+from screen_sharing.proxy.media.quality_gate import FrameQualityGate
+from screen_sharing.proxy.session import Session
 
 
 def _group_session() -> Session:

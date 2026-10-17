@@ -15,7 +15,7 @@ that fires during a silently-grey (no per-frame error) decoder wedge.
 """
 from __future__ import annotations
 
-from isharescreen.proxy.media.quality_gate import FrameQualityGate
+from screen_sharing.proxy.media.quality_gate import FrameQualityGate
 
 
 class _FakeClock:

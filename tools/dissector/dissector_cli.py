@@ -52,7 +52,7 @@ def build_parser() -> argparse.ArgumentParser:
     decode.add_argument("--client-port", type=int)
     decode.add_argument("--initial-key-hex",
         help="post-auth transport key (hex). Optional: defaults to the "
-             "sibling '<pcap-stem>.key' file written by `iss --record`.")
+             "sibling '<pcap-stem>.key' file written by `screen-sharing --record`.")
     decode.add_argument("--client-cbc-start-offset", type=int)
     decode.add_argument("--server-cbc-start-offset", type=int)
     decode.add_argument("--output")
@@ -65,7 +65,7 @@ def build_parser() -> argparse.ArgumentParser:
     export_client.add_argument("--client-port", type=int)
     export_client.add_argument("--initial-key-hex",
         help="post-auth transport key (hex). Optional: defaults to the "
-             "sibling '<pcap-stem>.key' file written by `iss --record`.")
+             "sibling '<pcap-stem>.key' file written by `screen-sharing --record`.")
     export_client.add_argument("--client-cbc-start-offset", type=int)
     export_client.add_argument("--server-cbc-start-offset", type=int)
     export_client.add_argument("--format", choices=["json", "markdown"], default="json")
@@ -79,7 +79,7 @@ def build_parser() -> argparse.ArgumentParser:
     scan.add_argument("--client-port", type=int)
     scan.add_argument("--initial-key-hex",
         help="post-auth transport key (hex). Optional: defaults to the "
-             "sibling '<pcap-stem>.key' file written by `iss --record`.")
+             "sibling '<pcap-stem>.key' file written by `screen-sharing --record`.")
     scan.add_argument("--client-cbc-start-offset", type=int)
     scan.add_argument("--server-cbc-start-offset", type=int)
     scan.add_argument("--tail-seconds", default="3,5")
@@ -96,7 +96,7 @@ def build_parser() -> argparse.ArgumentParser:
     render.add_argument("--client-port", type=int)
     render.add_argument("--initial-key-hex",
         help="post-auth transport key (hex). Optional: defaults to the "
-             "sibling '<pcap-stem>.key' file written by `iss --record`.")
+             "sibling '<pcap-stem>.key' file written by `screen-sharing --record`.")
     render.add_argument("--output", required=True)
     render.add_argument("--client-cbc-start-offset", type=int)
     render.add_argument("--server-cbc-start-offset", type=int)
@@ -112,7 +112,7 @@ def build_parser() -> argparse.ArgumentParser:
     analyze_udp.add_argument("--client-port", type=int)
     analyze_udp.add_argument("--initial-key-hex",
         help="post-auth transport key (hex). Optional: defaults to the "
-             "sibling '<pcap-stem>.key' file written by `iss --record`.")
+             "sibling '<pcap-stem>.key' file written by `screen-sharing --record`.")
     analyze_udp.add_argument("--client-cbc-start-offset", type=int)
     analyze_udp.add_argument("--server-cbc-start-offset", type=int)
     analyze_udp.add_argument("--media-ports", help="comma-separated UDP media ports (default: infer from stage1 0x3f2)")
@@ -133,7 +133,7 @@ def build_parser() -> argparse.ArgumentParser:
     export_mp4.add_argument("--client-port", type=int)
     export_mp4.add_argument("--initial-key-hex",
         help="post-auth transport key (hex). Optional: defaults to the "
-             "sibling '<pcap-stem>.key' file written by `iss --record`.")
+             "sibling '<pcap-stem>.key' file written by `screen-sharing --record`.")
     export_mp4.add_argument("--client-cbc-start-offset", type=int)
     export_mp4.add_argument("--server-cbc-start-offset", type=int)
     export_mp4.add_argument("--media-ports", help="comma-separated UDP media ports (default: infer from stage1 0x3f2)")
@@ -1256,7 +1256,7 @@ def cmd_render_replay(args: argparse.Namespace) -> int:
 
 def resolve_initial_key(args: argparse.Namespace) -> None:
     """Fill args.initial_key_hex from the sibling '<pcap-stem>.key' file when
-    not given explicitly. `iss --record session.pcap` writes session.key next
+    not given explicitly. `screen-sharing --record session.pcap` writes session.key next
     to it, so the common case needs no --initial-key-hex at all."""
     if getattr(args, "initial_key_hex", None):
         return
@@ -1267,7 +1267,7 @@ def resolve_initial_key(args: argparse.Namespace) -> None:
         return
     raise SystemExit(
         f"no transport key: pass --initial-key-hex, or place the key next to "
-        f"the pcap at {sibling} (iss --record writes it there automatically)"
+        f"the pcap at {sibling} (screen-sharing --record writes it there automatically)"
     )
 
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import types
 
-from isharescreen.proxy.session import (
+from screen_sharing.proxy.session import (
     Session,
     _AVC_D3D11_REANCHOR_FRAMES,
 )

@@ -12,11 +12,11 @@ import queue as _queue
 
 import pytest
 
-from isharescreen.proxy.media import hevc
-from isharescreen.proxy.media.hevc import (
+from screen_sharing.proxy.media import hevc
+from screen_sharing.proxy.media.hevc import (
     HevcDecoder, _TileSlot, _HWACCEL_SILENT_NALU_LIMIT,
 )
-from isharescreen.proxy.media.quality_gate import FrameQualityGate
+from screen_sharing.proxy.media.quality_gate import FrameQualityGate
 
 
 @pytest.fixture(autouse=True)

@@ -23,9 +23,9 @@ Mode-specific parsing is now split into dedicated modules:
 - `open`: full semantic coverage for every opaque extension family
 - `open`: later rekey families beyond the first confirmed transition
 
-## Relationship to `iss --record`
+## Relationship to `screen-sharing --record`
 
-`iss --record` (see `src/isharescreen/util/pcap_recorder.py`) writes a libpcap
+`screen-sharing --record` (see `src/screen_sharing/util/pcap_recorder.py`) writes a libpcap
 file of the live session — the exact wire bytes, still encrypted, wrapped in
 synthetic but valid Ethernet/IPv4/TCP|UDP framing. This dissector is the
 decode path for those captures: it reassembles the TCP control stream, derives
@@ -40,7 +40,7 @@ finds `session.key` next to it. (Pass `--initial-key-hex <hex>` to override;
 
 ## Environment
 
-The dissector has heavier, distinct dependencies from the `isharescreen`
+The dissector has heavier, distinct dependencies from the `screen_sharing`
 client (scapy, pylibsrtp, …) and is intentionally **not** part of the installed
 wheel. Install its own requirements into a virtualenv:
 

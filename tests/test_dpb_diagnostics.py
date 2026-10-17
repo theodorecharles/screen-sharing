@@ -6,8 +6,8 @@ import queue
 import time
 import types
 
-from isharescreen.proxy.media.quality_gate import FrameQualityGate
-from isharescreen.proxy.session import Session
+from screen_sharing.proxy.media.quality_gate import FrameQualityGate
+from screen_sharing.proxy.session import Session
 
 
 def test_dpb_diagnostic_captures_decoder_transport_and_geometry(caplog):

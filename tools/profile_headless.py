@@ -2,7 +2,7 @@
 
 py-spy needs root on macOS (SIP). This samples `sys._current_frames()` from a
 daemon thread, folds leaf frames, and splits on-CPU work from blocking waits
-(recvfrom / queue.get / lock.acquire / select). Run exactly like `iss`:
+(recvfrom / queue.get / lock.acquire / select). Run exactly like `screen-sharing`:
 
     echo "$PW" | python tools/profile_headless.py --host H -u U \
         --password-stdin --headless --auto-quit-secs 44
@@ -74,7 +74,7 @@ def _dump():
 def main():
     t = threading.Thread(target=_sampler, daemon=True)
     t.start()
-    from isharescreen.cli import main as iss_main
+    from screen_sharing.cli import main as iss_main
     try:
         return iss_main(sys.argv[1:])
     finally:

@@ -20,8 +20,8 @@ from __future__ import annotations
 import time
 import types
 
-from isharescreen.proxy.media.quality_gate import FrameQualityGate
-from isharescreen.proxy.session import Session
+from screen_sharing.proxy.media.quality_gate import FrameQualityGate
+from screen_sharing.proxy.session import Session
 
 
 # ── clock we advance by hand (drop-in for the gate's `time`) ──────────────

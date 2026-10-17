@@ -4,9 +4,9 @@ from __future__ import annotations
 import threading
 import types
 
-from isharescreen.proxy.protocol.rfb import DisplayRect
-from isharescreen.proxy.session import Session
-import isharescreen.proxy.session as session_mod
+from screen_sharing.proxy.protocol.rfb import DisplayRect
+from screen_sharing.proxy.session import Session
+import screen_sharing.proxy.session as session_mod
 
 
 def _bare_geometry_session(

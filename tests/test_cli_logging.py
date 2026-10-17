@@ -4,14 +4,14 @@ from __future__ import annotations
 import logging
 import types
 
-from isharescreen.cli import _setup_logging
+from screen_sharing.cli import _setup_logging
 
 
 def test_setup_logging_creates_missing_parent_directory(tmp_path):
     root = logging.getLogger()
     old_handlers = list(root.handlers)
     old_level = root.level
-    log_path = tmp_path / "fresh-home" / ".iss" / "gui-1-1.log"
+    log_path = tmp_path / "fresh-home" / ".screen-sharing" / "gui-1-1.log"
     args = types.SimpleNamespace(
         verbose=False,
         quiet=False,

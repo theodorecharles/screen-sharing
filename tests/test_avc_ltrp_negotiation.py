@@ -1,13 +1,13 @@
 """AVC must never advertise HEVC's long-term-reference protocol."""
 from __future__ import annotations
 
-from isharescreen.proxy.protocol import offers
-from isharescreen.proxy.session import Session, SessionConfig
+from screen_sharing.proxy.protocol import offers
+from screen_sharing.proxy.session import Session, SessionConfig
 
 
 def test_avc_offer_disables_ltrp_even_when_global_default_is_on(monkeypatch):
-    monkeypatch.setenv("ISS_VIDEO_CODEC", "avc")
-    monkeypatch.setenv("ISS_LTRP", "1")
+    monkeypatch.setenv("SCREEN_SHARING_VIDEO_CODEC", "avc")
+    monkeypatch.setenv("SCREEN_SHARING_LTRP", "1")
 
     blob = offers._build_mediablob(7, session_id=1, timestamp=1)
 
@@ -16,8 +16,8 @@ def test_avc_offer_disables_ltrp_even_when_global_default_is_on(monkeypatch):
 
 
 def test_default_offer_keeps_ltrp_for_hevc_capable_bank(monkeypatch):
-    monkeypatch.setenv("ISS_VIDEO_CODEC", "both")
-    monkeypatch.delenv("ISS_LTRP", raising=False)
+    monkeypatch.setenv("SCREEN_SHARING_VIDEO_CODEC", "both")
+    monkeypatch.delenv("SCREEN_SHARING_LTRP", raising=False)
 
     blob = offers._build_mediablob(7, session_id=1, timestamp=1)
 
@@ -26,8 +26,8 @@ def test_default_offer_keeps_ltrp_for_hevc_capable_bank(monkeypatch):
 
 
 def test_avc_session_never_sends_ltr_ack(monkeypatch):
-    monkeypatch.setenv("ISS_VIDEO_CODEC", "avc")
-    monkeypatch.setenv("ISS_LTRP", "1")
+    monkeypatch.setenv("SCREEN_SHARING_VIDEO_CODEC", "avc")
+    monkeypatch.setenv("SCREEN_SHARING_LTRP", "1")
 
     session = Session(SessionConfig(
         host="example.invalid", username="user", password="unused",

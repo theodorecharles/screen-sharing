@@ -1,4 +1,4 @@
-"""Unit tests for per-tile mid-stream wedge recovery (ISS_PERTILE_RECOVERY).
+"""Unit tests for per-tile mid-stream wedge recovery (SCREEN_SHARING_PERTILE_RECOVERY).
 
 Pure-logic tests, same harness as `test_decode_recovery.py`: a minimal
 `HevcDecoder` built via `__new__`, a real `FrameQualityGate`, real
@@ -30,9 +30,9 @@ import queue as _queue
 import numpy as np
 import av
 
-from isharescreen.proxy.media import hevc
-from isharescreen.proxy.media.hevc import HevcDecoder, _TileSlot
-from isharescreen.proxy.media.quality_gate import FrameQualityGate
+from screen_sharing.proxy.media import hevc
+from screen_sharing.proxy.media.hevc import HevcDecoder, _TileSlot
+from screen_sharing.proxy.media.quality_gate import FrameQualityGate
 
 
 # ── NALU fixtures ────────────────────────────────────────────────────
@@ -288,7 +288,7 @@ def test_decode_one_recovery_then_idr_roundtrip(monkeypatch):
 # ── flag OFF: byte-identical legacy path ─────────────────────────────
 
 def test_flag_off_recovery_uses_global_gate(monkeypatch):
-    """With ISS_PERTILE_RECOVERY off, `_try_recovery` is the legacy path:
+    """With SCREEN_SHARING_PERTILE_RECOVERY off, `_try_recovery` is the legacy path:
     global `_dpb_has_idr = False`, await set untouched (stays empty)."""
     monkeypatch.setattr(hevc, "_PERTILE_RECOVERY", False)
     d = _make_decoder()

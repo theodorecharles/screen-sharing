@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import types
 
-from isharescreen.proxy.media.avc import AvcDecoder
+from screen_sharing.proxy.media.avc import AvcDecoder
 
 
 # Minimal type-1 slice headers:

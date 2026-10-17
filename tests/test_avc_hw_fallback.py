@@ -3,8 +3,8 @@ from __future__ import annotations
 
 import types
 
-from isharescreen.proxy.media.avc import AvcDecoder
-from isharescreen.proxy.session import Session
+from screen_sharing.proxy.media.avc import AvcDecoder
+from screen_sharing.proxy.session import Session
 
 
 def test_explicit_hw_failure_relabels_decoder_as_software():

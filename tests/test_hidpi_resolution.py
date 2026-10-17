@@ -11,14 +11,14 @@ Covers the dynamic-resolution port fixes:
 """
 import pytest
 
-from isharescreen.cli import _build_session_config, _make_parser
+from screen_sharing.cli import _build_session_config, _make_parser
 
 
 def _config(*flags):
     base = ["--host", "h", "-u", "u", "--password-stdin"]
     args = _make_parser().parse_args(base + list(flags))
     # _password_from_args reads stdin for --password-stdin; inject directly.
-    import isharescreen.cli as cli
+    import screen_sharing.cli as cli
     orig = cli._password_from_args
     cli._password_from_args = lambda _a: "pw"
     try:
@@ -61,7 +61,7 @@ def test_auto_advertise_defers_to_frontend():
 # ── Fix 2/3: frontend resolution + logical window sizing ─────────────
 
 def test_resolve_hidpi_request_auto_matches_local_display():
-    app = pytest.importorskip("isharescreen.frontend.desktop.app")
+    app = pytest.importorskip("screen_sharing.frontend.desktop.app")
     # Non-Retina client (scale 1) → 1× backing, logical size unchanged.
     assert app._resolve_hidpi_request("auto", 1366, 768, 1) == (1366, 768, 1)
     # Retina client (scale 2) → 2× backing, logical size unchanged.
@@ -69,14 +69,14 @@ def test_resolve_hidpi_request_auto_matches_local_display():
 
 
 def test_resolve_hidpi_request_explicit_modes():
-    app = pytest.importorskip("isharescreen.frontend.desktop.app")
+    app = pytest.importorskip("screen_sharing.frontend.desktop.app")
     # on forces 2× even on a non-Retina client; off forces 1× on Retina.
     assert app._resolve_hidpi_request("on", 1366, 768, 1)[2] == 2
     assert app._resolve_hidpi_request("off", 1366, 768, 2)[2] == 1
 
 
 def test_resolve_hidpi_auto_stays_retina_and_caps_logical():
-    app = pytest.importorskip("isharescreen.frontend.desktop.app")
+    app = pytest.importorskip("screen_sharing.frontend.desktop.app")
     # A Retina client at a large logical size: auto STAYS 2× (elements stay
     # normal-sized, like Screen Sharing.app) and caps the logical request so
     # the 2× backing still fits the host's 3840×2160 ceiling — rather than
@@ -85,3 +85,19 @@ def test_resolve_hidpi_auto_stays_retina_and_caps_logical():
     assert scale == 2                        # Retina kept, not downgraded to 1×
     assert req_w * scale <= 3840             # 2× backing fits the host cap
     assert req_h * scale <= 2160
+
+
+def test_auto_preserves_fractional_display_scale():
+    from screen_sharing.frontend.desktop.app import _resolve_hidpi_request
+    assert _resolve_hidpi_request('auto', 1200, 800, 1.5) == (1200, 800, 1.5)
+
+
+def test_wayland_monitor_pixels_are_converted_to_logical_size(monkeypatch):
+    from screen_sharing.frontend.desktop import app
+    monkeypatch.setattr(app.glfw, 'init', lambda: True)
+    monkeypatch.setattr(app.glfw, 'get_primary_monitor', lambda: 'monitor')
+    monkeypatch.setattr(app.glfw, 'get_monitor_workarea', lambda _: (0,0,2880,1920))
+    monkeypatch.setattr(app.glfw, 'get_platform', lambda: app.glfw.PLATFORM_WAYLAND)
+    monkeypatch.setattr(app.glfw, 'get_monitor_content_scale', lambda _: (2.,2.))
+    assert app._auto_advertise_dims(fullscreen=True) == (1440,960)
+    assert app._auto_advertise_dims() == (1224,816)

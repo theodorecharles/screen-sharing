@@ -9,6 +9,7 @@ dist/
 .vscode/
 tools/*
 !tools/dissector/
+!tools/viewer_smoke.py
 *.pcap
 *.pcapng
 *.key

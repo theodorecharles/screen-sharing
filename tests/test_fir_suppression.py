@@ -4,7 +4,7 @@ from __future__ import annotations
 import time
 import types
 
-from isharescreen.proxy.session import Session
+from screen_sharing.proxy.session import Session
 
 
 class _FakeDecoder:

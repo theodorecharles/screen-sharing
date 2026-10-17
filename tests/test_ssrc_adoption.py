@@ -5,7 +5,7 @@ import collections
 import time
 import types
 
-from isharescreen.proxy.session import (
+from screen_sharing.proxy.session import (
     Session,
     _DYNAMIC_SSRC_PACKET_THRESHOLD,
     _SSRC_ADOPT_STALL_S,
@@ -47,7 +47,7 @@ def _session(codec: str) -> Session:
 
 
 def test_avc_fresh_ssrc_always_resets_dpb_inside_restart_guard(monkeypatch):
-    monkeypatch.setenv("ISS_TILES_PER_FRAME", "1")
+    monkeypatch.setenv("SCREEN_SHARING_TILES_PER_FRAME", "1")
     session = _session("avc")
 
     session._note_unknown_ssrc(0x2000)
@@ -58,7 +58,7 @@ def test_avc_fresh_ssrc_always_resets_dpb_inside_restart_guard(monkeypatch):
 
 
 def test_hevc_fresh_ssrc_keeps_rapid_restart_guard(monkeypatch):
-    monkeypatch.setenv("ISS_TILES_PER_FRAME", "1")
+    monkeypatch.setenv("SCREEN_SHARING_TILES_PER_FRAME", "1")
     session = _session("hevc")
 
     session._note_unknown_ssrc(0x2000)

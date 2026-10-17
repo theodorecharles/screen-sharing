@@ -8,7 +8,7 @@ names at call time, so patching the module attribute steers selection.
 """
 from __future__ import annotations
 
-from isharescreen.proxy.media import registry as R
+from screen_sharing.proxy.media import registry as R
 
 
 def test_normalize_override_aliases():

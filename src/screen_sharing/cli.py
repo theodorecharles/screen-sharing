@@ -508,7 +508,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         # no traceback even in --verbose, distinct exit code.
         from screen_sharing.proxy.protocol.auth import AuthError
         if isinstance(e, AuthError):
-            log.error("authentication failed — check username and password")
+            log.error("authentication failed: %s", e)
             return 2
         log.error("fatal: %s", e)
         if args.verbose:

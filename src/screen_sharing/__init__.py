@@ -10,4 +10,4 @@ Layout (no symbols re-exported here — import directly from the modules):
     screen_sharing.frontend.connect_prompt    launch-time terminal prompt
     screen_sharing.frontend.desktop.*         native wgpu + glfw viewer
 """
-__version__ = "0.2.0"
+__version__ = "0.2.1"

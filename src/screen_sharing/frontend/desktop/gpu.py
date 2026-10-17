@@ -26,6 +26,8 @@ import os
 import numpy as np
 import wgpu
 
+from .geometry import fit_viewport
+
 # Opt-in cursor-overlay diagnostics. Set SCREEN_SHARING_CURSOR_DEBUG=1 to log, on a
 # throttle, why the overlay did or didn't draw each frame.
 _CURSOR_DEBUG = os.environ.get("SCREEN_SHARING_CURSOR_DEBUG") == "1"
@@ -684,16 +686,11 @@ class Renderer:
             np.array([ux, uy, ox, oy, ux * crx, uy * cry, ox * crx, oy * cry],
                      dtype=np.float32).tobytes(),
         )
-        # Fill the whole window (the pre-rework baseline behavior). The window
-        # is aspect-locked to the content (see app.py), so a free resize fills
-        # with no distortion; when the window can't hold the aspect (maximize
-        # overrides the lock) the content stretches to fill rather than showing
-        # black bars. `uv_scale` (above) still crops sampling to the decoded
-        # sub-rect, so texture padding is never shown (no green/black bottom).
-        viewport = (0.0, 0.0, float(target_w), float(target_h))
-        # Per-axis content->screen scale, for placing the cursor overlay.
-        sclx = target_w / cw if cw > 0 else 1.0
-        scly = target_h / ch if ch > 0 else 1.0
+        # A remote resize is asynchronous. Preserve proportions while waiting,
+        # and when macOS cannot provide the requested display dimensions.
+        viewport = fit_viewport(cw, ch, target_w, target_h)
+        sclx = viewport[2] / cw if cw > 0 else 1.0
+        scly = viewport[3] / ch if ch > 0 else 1.0
         encoder = self._device.create_command_encoder()
         rpass = encoder.begin_render_pass(color_attachments=[{
             "view": target_view,
@@ -730,15 +727,12 @@ class Renderer:
                 )
         if _overlay_ok:
             cx, cy = self._cursor_pos
-            # Content texels map onto the full window per-axis (fill). Place
-            # the cursor by the per-axis scale; size the sprite by the smaller
-            # axis so it stays square (never stretched). `_cursor_scale` is a
-            # calibration / SCREEN_SHARING_CURSOR_SCALE multiplier (default 1.0).
+            # Cursor uses the same centered, uniform transform as the video.
             d = min(sclx, scly) * self._cursor_scale
             # cx,cy are full-canvas texels; the presented crop starts at (rx,ry),
             # so shift into crop-local space before scaling to the window.
-            px = (cx - rx) * sclx
-            py = (cy - ry) * scly
+            px = viewport[0] + (cx - rx) * sclx
+            py = viewport[1] + (cy - ry) * scly
             sw = self._cur_w * d
             sh = self._cur_h * d
             sx = px - self._cur_hx * d

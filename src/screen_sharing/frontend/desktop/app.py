@@ -45,16 +45,11 @@ log = logging.getLogger(__name__)
 _FRESH_TILE_WAIT_S = 0.005
 
 
+from .geometry import to_canvas as map_to_canvas
+from .resize import ResizeTracker
+
+
 # ── dynamic resolution ───────────────────────────────────────────────
-# When the viewer window is resized we re-advertise the host's virtual
-# display to match (Session.send_dynamic_resolution), so the remote
-# re-renders sharp at the new size instead of stretching a fixed canvas.
-# This is an IN-BAND request on the live connection (no reconnect), but
-# the server still has to restart the HEVC encoder, so we debounce +
-# threshold the requests so a click-drag resize doesn't fire one per pixel.
-_RESIZE_DEBOUNCE_S = 0.5        # window must hold a new size this long
-_RESIZE_MIN_DELTA_PX = 32       # ignore sub-threshold jitter on either axis
-_RESIZE_MIN_INTERVAL_S = 2.5    # floor between consecutive resize requests
 _MIN_ADVERTISE_W = 640
 
 # Scroll-wheel: base amplification applied to EVERY scroll (on top of the
@@ -522,59 +517,14 @@ def run(
             except Exception:
                 continue
             if sw > 0 and sh > 0 and px <= gx < px + sw and py <= gy < py + sh:
-                rx, ry, rw, rh = v["crop"]
-                u = min(1.0, max(0.0, (gx - px) / sw))
-                vv = min(1.0, max(0.0, (gy - py) / sh))
-                sx = rx + min(rw - 1, int(u * rw))
-                sy = ry + min(rh - 1, int(vv * rh))
-                return (max(0, min(canvas_w - 1, sx)),
-                        max(0, min(canvas_h - 1, sy)))
+                return map_to_canvas(gx - px, gy - py, sw, sh, v["crop"])
         return None
 
     def to_canvas(wx: float, wy: float) -> Optional[tuple[int, int]]:
-        """Map glfw cursor (in glfw window coords) → canvas coords for
-        `InputController.pointer_event`.
-
-        This MUST invert the exact transform in `gpu.Renderer.draw`: the
-        decoded content (`content_dims()`, pinned to the top-left of the
-        canvas textures) is stretched to fill the whole window per-axis (no
-        bars). So here the window→content map is a plain per-axis fraction —
-        and it MUST stay in lockstep with draw()'s viewport, or the host
-        cursor drifts from the OS pointer. The window→content fractions are
-        identical whether measured in logical points (this function) or
-        physical surface pixels (draw's target), so `glfw.get_window_size`
-        points are the right space.
-
-        Maps to canvas dims, NOT server-init dims: the daemon's
-        composite ServerInit (e.g. 2940×1912 when a SkyLight virtual
-        display is active alongside the panel) doesn't correspond to
-        what's rendered in the screen-sharing window — only the canvas does.
-        """
+        """Invert the renderer's aspect-preserving viewport in logical pixels."""
         win_w, win_h = glfw.get_window_size(glfw_window)
-        if win_w == 0 or win_h == 0:
-            return None
-        # The presented sub-rect (in canvas texels): the full decoded content by
-        # default, or one host monitor when --display crops the canvas. Mapping
-        # against this (not the full content) is what keeps the OS pointer and
-        # the host cursor aligned when a crop is active. In multi-window mode the
-        # primary pins its own crop (the shared renderer state churns per-window).
-        if _view_crop[0] is not None:
-            rx, ry, rw, rh = _view_crop[0]
-        else:
-            rx, ry, rw, rh = renderer.source_rect()
-        if rw <= 0 or rh <= 0 or canvas_w <= 0 or canvas_h <= 0:
-            return None
-        # Mirror draw()'s fill: the crop is stretched to fill the whole window
-        # per-axis (no bars), so the window->crop map is a plain per-axis
-        # fraction, then translated by the crop origin into full-canvas coords.
-        # Keeping this in lockstep with draw() is what keeps the host cursor
-        # aligned with the OS pointer.
-        u = min(1.0, max(0.0, wx / win_w if win_w else 0.0))
-        v = min(1.0, max(0.0, wy / win_h if win_h else 0.0))
-        sx = rx + min(rw - 1, int(u * rw))
-        sy = ry + min(rh - 1, int(v * rh))
-        return (max(0, min(canvas_w - 1, sx)),
-                max(0, min(canvas_h - 1, sy)))
+        crop = _view_crop[0] if _view_crop[0] is not None else renderer.source_rect()
+        return map_to_canvas(wx, wy, win_w, win_h, crop)
 
     def on_cursor_pos(_w, x, y):
         nonlocal cursor
@@ -772,13 +722,7 @@ def run(
 
         def to_canvas2(wx, wy):
             ww, wh = glfw.get_window_size(gw2)
-            if ww == 0 or wh == 0:
-                return None
-            u = min(1.0, max(0.0, wx / ww))
-            v = min(1.0, max(0.0, wy / wh))
-            sx = rx0 + min(rw0 - 1, int(u * rw0))
-            sy = ry0 + min(rh0 - 1, int(v * rh0))
-            return (max(0, min(canvas_w - 1, sx)), max(0, min(canvas_h - 1, sy)))
+            return map_to_canvas(wx, wy, ww, wh, st.crop)
 
         def on_pos2(_w, x, y):
             # Only a button-held drag needs the global remap (to cross into
@@ -1213,15 +1157,11 @@ def run(
     # resumes sharp. No reconnect, no re-auth. The canvas change is
     # visible to the render loop via `canvas_dims` which checks
     # `_runtime_canvas_w/h` updated by the 0x451 handler.
-    cur_adv_w, cur_adv_h = glfw.get_window_size(glfw_window)
-    last_display_scale = _display_scale(glfw_window)
-    pending_size: Optional[tuple[int, int, float]] = None
-    pending_since = 0.0
-    last_resize_t = 0.0
+    resize_tracker = ResizeTracker()
 
     def _apply_new_canvas() -> None:
         nonlocal canvas_w, canvas_h, num_tiles, slot_h, slot_h_resolved
-        nonlocal first_seen, renderer, cur_adv_w, cur_adv_h
+        nonlocal first_seen, renderer
         canvas_w, canvas_h = session.canvas_dims
         scaled_w, scaled_h = session.scaled_dims
         num_tiles = session.num_tiles
@@ -1258,63 +1198,33 @@ def run(
         # here would instead shrink a fullscreen window down to the remote's
         # reply — the opposite of the native behaviour we're matching.
         #
-        # Re-sync the resize guard to the ACTUAL window size (not the
-        # server's reply). The window hasn't moved, so a reply smaller than
-        # the window must NOT read as a fresh resize — otherwise _poll_resize
-        # would re-fire every interval forever.
+        # A reply can describe an older request. Never use the current window
+        # as an acknowledged size: ResizeTracker retains the latest target.
         ww, wh = glfw.get_window_size(glfw_window)
-        cur_adv_w, cur_adv_h = _even(ww), _even(wh)
         log.info("dynamic resize: canvas=%dx%d scaled=%dx%d window=%dx%d "
                  "tiles=%d hw=%s",
-                 canvas_w, canvas_h, scaled_w, scaled_h, cur_adv_w, cur_adv_h,
+                 canvas_w, canvas_h, scaled_w, scaled_h, ww, wh,
                  num_tiles, session.hw_accel)
 
     def _poll_resize() -> None:
-        nonlocal pending_size, pending_since, last_resize_t, cur_adv_w, cur_adv_h, last_display_scale
-        now = time.monotonic()
         win_w, win_h = glfw.get_window_size(glfw_window)
         if win_w <= 0 or win_h <= 0:
             return
-        tw, th = _even(win_w), _even(win_h)
-        display_scale = _display_scale(glfw_window)
-        if (abs(tw - cur_adv_w) >= _RESIZE_MIN_DELTA_PX
-                or abs(th - cur_adv_h) >= _RESIZE_MIN_DELTA_PX
-                or (config.hidpi == "auto" and display_scale != last_display_scale)):
-            if pending_size != (tw, th, display_scale):
-                pending_size = (tw, th, display_scale)
-                pending_since = now
-        else:
-            pending_size = None
-        if (pending_size is not None
-                and now - pending_since >= _RESIZE_DEBOUNCE_S
-                and now - last_resize_t >= _RESIZE_MIN_INTERVAL_S):
-            # Resolve the window's logical size + the HiDPI mode into the
-            # request resolution AND the backing scale, preserving the window
-            # aspect and clamping so backing never exceeds the host's
-            # 3840×2160 cap (see _resolve_hidpi_request). The request IS the
-            # viewport: when the host satisfies it the remote fills the window
-            # 1:1; the renderer letterboxes only a genuine shortfall.
-            nw, nh, scale = _resolve_hidpi_request(
-                config.hidpi, pending_size[0], pending_size[1],
-                _display_scale(glfw_window))
-            # Advance the guard to the WINDOW size we acted on (tw,th),
-            # NOT the clamped request (nw,nh). If the window is larger
-            # than the cap, the request is clamped but the window stays
-            # big; comparing future polls against the clamped value would
-            # leave abs(window - cur_adv) above threshold forever and
-            # re-fire a resize every interval. Tracking the window size
-            # means a stable (if oversized) window never re-fires.
-            cur_adv_w, cur_adv_h = tw, th
-            last_display_scale = display_scale
-            pending_size = None
-            last_resize_t = now
-            log.info("resize → requesting %dx%d @%gx (hidpi=%s)",
-                     nw, nh, scale, config.hidpi)
-            try:
-                session.send_dynamic_resolution(nw, nh, hidpi_scale=scale)
-            except Exception as e:
-                log.error("send_dynamic_resolution failed: %s", e)
-                return
+        target = _resolve_hidpi_request(
+            config.hidpi, win_w, win_h, _display_scale(glfw_window))
+        request = resize_tracker.poll(
+            target, session.scaled_dims, session.canvas_dims, time.monotonic())
+        if request is None:
+            return
+        nw, nh, scale = request
+        log.info("resize → requesting %dx%d @%gx (attempt %d)",
+                 nw, nh, scale, resize_tracker.attempts)
+        try:
+            session.send_dynamic_resolution(nw, nh, hidpi_scale=scale)
+        except Exception as error:
+            # The controller retries a bounded number of times. A failed send
+            # is not an acknowledgement of the window's new dimensions.
+            log.error("send_dynamic_resolution failed: %s", error)
 
     exit_code = 0
     ready_announced = False
@@ -1398,6 +1308,13 @@ def run(
                         log.info("single-monitor host — one window, dynamic=%s",
                                  _dynamic[0])
                 _secondaries_spawned[0] = True
+
+        if _auto_gap_crop[0]:
+            gap = session.display_content_rect
+            crop = (gap.x, gap.y, gap.w, gap.h) if gap is not None else None
+            if crop != _view_crop[0]:
+                _view_crop[0] = crop
+                renderer.set_source_rect(crop)
 
         # Reap secondaries the user closed (independently of the primary).
         if secondaries:

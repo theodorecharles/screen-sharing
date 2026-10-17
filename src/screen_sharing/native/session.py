@@ -199,7 +199,9 @@ class SessionDialog(QDialog):
         self.connect_button.setText("Retry")
         self.connect_button.setEnabled(False)
         if code == 2:
-            message = "Sign-in failed. Check your Mac username and password."
+            message = (f"Sign-in failed for {self.profile.username}. "
+                       "Check your Mac login password and that this account "
+                       "has Screen Sharing access.")
         elif self.ready:
             message = "The connection ended. Enter your password to reconnect."
         else:
